@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	maxgen    = 10000
+	maxgen    = 1000
 	cnvrgcrit = 0.001
 )
 
@@ -110,7 +110,7 @@ nextgen:
 
 	// step 6 check for convergence
 	if ngen > maxgen { // failure
-		log.Println("maximimum iterations (generations) reached, failed to converge")
+		log.Printf("maximimum iterations (generations) of %v reached, failed to converge on optimum\n", maxgen)
 		goto finish
 	} else if cnv < cnvrgcrit { // parameter convergence
 		goto finish
