@@ -4,13 +4,15 @@ A go package for global optimization
 
 ## glbopt includes:
 
-**Shuffled Complex Evolution**, University of Arizona (SCE-UA - Duan et.al., 1993)
+**Shuffled Complex Evolution**-University of Arizona (SCE-UA - Duan et. al., 1993)
 
-**SurrogateRBF:** A radial basis function surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems (after Müller et.al., 2013; and Regis and Shoemaker, 2005)
+**SurrogateRBF:** A radial basis function surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems (after Müller et. al., 2013; and Regis and Shoemaker, 2005)
 
 ## dependencies:
 
 * go montecarlo (https://github.com/maseology/montecarlo)
+* go mmaths (https://github.com/maseology/mmaths)
+* gonum (https://github.com/gonum/gonum)
 
 ## References
 

@@ -1,7 +1,6 @@
 package glbopt
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 
@@ -242,10 +241,14 @@ exit1:
 
 	am := mat.NewDense(n+d+1, n+d+1, a)
 	bm := mat.NewVecDense(n+d+1, b)
-	var x mat.VecDense
-	if err := x.SolveVec(am, bm); err != nil {
-		fmt.Println(err)
-	}
+	x := svdSolve(am,bm)
+
+	// am := mat.NewDense(n+d+1, n+d+1, a)
+	// bm := mat.NewVecDense(n+d+1, b)
+	// var x mat.VecDense
+	// if err := x.SolveVec(am, bm); err != nil {
+	// 	fmt.Println(err)
+	// }
 
 	// x := mat.NewDense(n+d+1, 1, make([]float64, n+d+1))
 	// if err := x.Solve(am, bm); err != nil {
@@ -316,6 +319,39 @@ exit1:
 	// // println()
 	// // panic("asdf")
 
+}
+
+func svdSolve(a *mat.Dense, b *mat.VecDense) *mat.VecDense {
+	// following https://www.youtube.com/watch?v=oTCLm-WnX9Y
+	// svdSolve(mat.NewDense(3, 2, []float64{1., 0., 0., 2., 0., 1.}), mat.NewVecDense(3, []float64{0., 1., 0.}))
+	// Solve x in Ax=b
+	ar, ac := a.Dims()
+
+	var svd mat.SVD
+	if !svd.Factorize(a, mat.SVDFull) {
+		panic("SVD solver error")
+	}
+	u := svd.UTo(nil)
+	v := svd.VTo(nil)
+	sv := svd.Values(nil) // sigma vectors
+	for i := 0; i < len(sv); i++ {
+		if sv[i] != 0. {
+			sv[i] = 1. / sv[i]
+		}
+	}
+	s := mat.NewDiagonalRect(ar, ac, sv)
+	si := mat.DenseCopyOf(s.T()) // pseudo-inverse
+
+	z := mat.NewVecDense(ar, nil)
+	z.MulVec(u.T(), b)
+
+	y := mat.NewVecDense(ac, nil)
+	y.MulVec(si, z)
+
+	x := mat.NewVecDense(ac, nil)
+	x.MulVec(v, y)
+
+	return x
 }
 
 func evaluateSurrogate(c []float64) (float64, float64) {
