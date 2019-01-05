@@ -17,4 +17,5 @@
 .vs/
 
 # other
-/bak
+bak/
+test/

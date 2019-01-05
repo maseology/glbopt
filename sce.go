@@ -1,7 +1,9 @@
 package glbopt
 
 import (
+	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"sort"
 
@@ -10,8 +12,8 @@ import (
 )
 
 const (
-	maxgen    = 1000
-	cnvrgcrit = 0.001
+	maxgen    = 100
+	cnvrgcrit = 0.01
 )
 
 // cmplx complex struct
@@ -27,9 +29,6 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	// p: number of complexes (p>=1);  n: number of dimensions;  m: number of points per complex (m>=n+1)
 	if nDim <= 0 {
 		log.Panicf("SCE error: nDim = %v\nSCE is best used for problem having greater than 1 dimension", nDim)
-	}
-	if nComplx <= 1 {
-		panic("SCE error: need to have at least one more complex than number of dimensions")
 	}
 
 	// step 0 initialize
@@ -57,12 +56,16 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	}
 
 	// step 2 rank points (f() is not to change order)
-	f2 := make([]float64, len(f))
-	copy(f2, f)
-	sort.Sort(mmaths.IndexedSlice{Indx: d, Val: f2})
-	if !minimize {
-		mmaths.Rev(d) // ordering from best (highest evaluated score) to worst
+	rank := func() {
+		f2 := make([]float64, len(f))
+		copy(f2, f)
+		d = mmaths.Sequential(len(d) - 1) // resetting d
+		sort.Sort(mmaths.IndexedSlice{Indx: d, Val: f2})
+		if !minimize {
+			mmaths.Rev(d) // ordering from best (highest evaluated score) to worst
+		}
 	}
+	rank()
 
 	ngen := 0
 nextgen:
@@ -74,10 +77,19 @@ nextgen:
 	}
 
 	// step 4 evolve - competitive complex evolution (CCE):
-	cmplxs := make(chan cmplx, p)
+	cmplxs := make(chan cmplx)
 	cnvs := make(chan float64, p)
 	for k := 0; k < p; k++ {
-		go cce(cmplxs, cnvs, u, w, f, a, n, m, q, alpha, beta, minimize, fun, rng)
+		go func() {
+			c := <-cmplxs
+			c.cce(cnvs, w, n, m, q, alpha, beta, minimize, fun, rng)
+
+			// reset function values parameter samples
+			for i := 0; i < m; i++ {
+				f[a[c.k][i]] = c.f[i]
+				u[a[c.k][i]] = c.u[i]
+			}
+		}()
 	}
 
 	for k := 0; k < p; k++ {
@@ -99,23 +111,20 @@ nextgen:
 			cnv = ck
 		}
 	}
+	close(cnvs)
 
-	// step 5 shuffle complexes (Note: f() has never changed order)
-	f2 = make([]float64, len(f))
-	copy(f2, f)
-	sort.Sort(mmaths.IndexedSlice{Indx: d, Val: f2})
-	if !minimize {
-		mmaths.Rev(d) // ordering from best (highest evaluated score) to worst
-	}
+	// step 5 shuffle complexes firt by re-ranking d() (Note: f() has never changed order)
+	rank()
 
 	// step 6 check for convergence
-	if ngen > maxgen { // failure
+	ngen++
+	fmt.Printf("%d\t%.6f\t%f\t%f\n", ngen, cnv, u[d[0]], f[d[0]])
+	if ngen >= maxgen { // failure
 		log.Printf("maximimum iterations (generations) of %v reached, failed to converge on optimum\n", maxgen)
 		goto finish
 	} else if cnv < cnvrgcrit { // parameter convergence
 		goto finish
 	} else {
-		ngen++
 		goto nextgen
 	}
 
@@ -127,7 +136,10 @@ func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []fl
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)
 	for k := 0; k < s; k++ {
-		go initSample(smpls, results, fun)
+		go func() {
+			s := <-smpls
+			results <- append(s, fun(s))
+		}()
 	}
 
 	sp := smpln.NewHalton(s, n)
@@ -155,50 +167,51 @@ func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []fl
 	return u, f, d
 }
 
-func initSample(u <-chan []float64, o chan<- []float64, fun func(p []float64) float64) {
-	for s := range u {
-		f := fun(s)
-		o <- append(s, f)
-	}
-}
+func (c *cmplx) cce(cnv chan<- float64, w []float64, n, m, q, alpha, beta int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
+	//  CCE step 0 initialize (assigned above)
+	//  CCE step 1 assign triangular weights; sum(w)=1 (built above)
+	//  CCE steps 2-5, applied to every k complex
+	for j := 0; j < beta; j++ {
+		//  CCE step 2 select parents & step 3 generate offspring
+		c.sceuacce(w, n, m, q, alpha, minimize, fun, rng)
 
-func cce(cmplxs <-chan cmplx, cnv chan<- float64, u [][]float64, w, f []float64, a [][]int, n, m, q, alpha, beta int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
-	for c := range cmplxs {
-		//  CCE step 0 initialize (assigned above)
-		//  CCE step 1 assign triangular weights; sum(w)=1 (built above)
-		//  CCE steps 2-5, applied to every k complex
-		for j := 0; j < beta; j++ {
-			//  CCE step 2 select parents & step 3 generate offspring
-			sceuacce(c.u, w, c.f, n, m, q, alpha, minimize, fun, rng)
-
-			// step 4 replace parents by offspring
-			ft := make([]float64, m)
-			copy(ft, c.f)
-			for i := 0; i < m; i++ {
-				f[a[c.k][i]] = c.f[i]
-			}
-			if j < beta-1 { // if iteration occurs at CCE step 5
-				fi := mmaths.Sequential(m - 1)
-				sort.Sort(mmaths.IndexedSlice{Indx: fi, Val: ft})
-				if !minimize { // ordering from best (highest evaluated score) to worst
-					mmaths.Rev(fi)
-					mmaths.RevF(ft)
-				}
-				for i := 0; i < m; i++ {
-					c.u[i] = u[a[c.k][fi[i]]] // pointer to u-array
-				}
-			} else {
-				sx := 0.
-				hn, hx := smallestHypercube(c.u, m, n)
-				for i := 0; i < n; i++ { // for checking parameter convergence on a per-complex basis
-					if hx[i]-hn[i] > sx {
-						sx = hx[i] - hn[i] // looking for maximum range in sample space s
-					}
-				}
-				cnv <- sx
-			}
+		// step 4 replace parents by offspring
+		ct, ft, fi := make([][]float64, m), make([]float64, m), mmaths.Sequential(m-1)
+		copy(ft, c.f)
+		sort.Sort(mmaths.IndexedSlice{Indx: fi, Val: c.f})
+		if !minimize { // ordering from best (highest evaluated score) to worst
+			mmaths.Rev(fi)
+			mmaths.RevF(c.f)
+		}
+		copy(ct, c.u)
+		for i := 0; i < m; i++ {
+			c.u[i] = ct[fi[i]]
 		}
 	}
+	cnv <- converge(smallestHypercube(c.u, m, n)) // for checking parameter convergence on a per-complex basis
+}
+
+func converge(hn, hx []float64) float64 {
+
+	// sx := 0.
+	// for i := 0; i < len(hn); i++ {
+	// 	if hx[i]-hn[i] > sx { // looking for maximum range in sample space s
+	// 		sx = hx[i] - hn[i]
+	// 	}
+	// }
+	// return sx // max dimension
+
+	// sx := 0.
+	// for i := 0; i < len(hn); i++ {
+	// 	sx += hx[i] - hn[i]
+	// }
+	// return sx / float64(len(hn)) // arithmetic mean
+
+	sx := 1.
+	for i := 0; i < len(hn); i++ {
+		sx *= hx[i] - hn[i]
+	}
+	return math.Pow(sx, 1./float64(len(hn))) // geometric mean
 }
 
 func smallestHypercube(u [][]float64, s, n int) ([]float64, []float64) {
@@ -223,7 +236,7 @@ func smallestHypercube(u [][]float64, s, n int) ([]float64, []float64) {
 
 // competitive complex evolution (CCE)
 // from: Duan, Q.Y., V.K. Gupta, and S. Sorooshian, 1993. Shuffled Complex Evolution Approach for Effective and Efficient Global Minimization. Journal of Optimization Theory and Applications 76(3) pp.501-521.
-func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
+func (c *cmplx) sceuacce(w []float64, n, m, q, alpha int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
 	// step 2 select q parents using assigned weights; q is defined as a subcomplex
 	l := make([]int, q)      // L: the locations of 'a' which are used to construct B=[ui, vi]
 	vi := make([]float64, q) // function values associated with ui
@@ -236,7 +249,7 @@ func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool
 			if r2 >= r1 && !bl[j] {
 				bl[j] = true
 				l[i] = j
-				vi[i] = fk[j]
+				vi[i] = c.f[j]
 				goto continue2
 			}
 		}
@@ -245,7 +258,7 @@ func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool
 	}
 
 	// step 3 generate offspring
-	hn, hx := smallestHypercube(uk, m, n)
+	hn, hx := smallestHypercube(c.u, m, n)
 	for x := 0; x < alpha; x++ {
 		//  3a) sort L and B by function value
 		sort.Sort(mmaths.IndexedSlice{Indx: l, Val: vi})
@@ -259,14 +272,14 @@ func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool
 		for i := 0; i < n; i++ {
 			sum := 0.0
 			for j := 0; j < q-1; j++ {
-				sum += uk[l[j]][i]
+				sum += c.u[l[j]][i]
 			}
 			g[i] = sum / float64(q-1) // ie, average value of all but the worst evaluated function
 		}
 
 		// 3b) compute new point (reflection)
 		for i := 0; i < n; i++ {
-			r[i] = 2.*g[i] - uk[l[q-1]][i]
+			r[i] = 2.*g[i] - c.u[l[q-1]][i]
 		}
 
 		// 3c)
@@ -285,11 +298,11 @@ func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool
 		fr := fun(r)
 		if (minimize && fr < vi[q-1]) || (!minimize && fr > vi[q-1]) { // improvement
 			vi[q-1] = fr
-			copy(uk[l[q-1]], r)
+			copy(c.u[l[q-1]], r)
 			goto _3f
 		} else {
 			for i := 0; i < n; i++ { // contraction step
-				r[i] = (g[i] + uk[l[q-1]][i]) / 2. // r() is used here in place of c() in Duan etal (1993)
+				r[i] = (g[i] + c.u[l[q-1]][i]) / 2. // r() is used here in place of c() in Duan etal (1993)
 			}
 		}
 
@@ -297,13 +310,13 @@ func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool
 		fr = fun(r)                                                    // fc
 		if (minimize && fr < vi[q-1]) || (!minimize && fr > vi[q-1]) { // improvement
 			vi[q-1] = fr
-			copy(uk[l[q-1]], r)
+			copy(c.u[l[q-1]], r)
 		} else {
 			for i := 0; i < n; i++ { // mutation step
 				r[i] = hn[i] + rng.Float64()*(hx[i]-hn[i]) // r() is used here in place of z() in Duan etal (1993)
 			}
 			vi[q-1] = fun(r) // fz
-			copy(uk[l[q-1]], r)
+			copy(c.u[l[q-1]], r)
 		}
 
 	_3f: // 3f) Repeat Steps (a) through (e) alpha times
@@ -311,6 +324,6 @@ func sceuacce(uk [][]float64, w, fk []float64, n, m, q, alpha int, minimize bool
 
 	// reset f
 	for i := 0; i < q; i++ {
-		fk[l[i]] = vi[i]
+		c.f[l[i]] = vi[i]
 	}
 }
