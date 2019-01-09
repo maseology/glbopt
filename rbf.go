@@ -130,15 +130,21 @@ func (r *rbf) addLocalEvaluation(fun func(u []float64) float64, rng *rand.Rand) 
 	c := make([][]float64, r.nc) // candate points
 	for i := 0; i < r.nc; i++ {
 		c[i] = make([]float64, r.d)
-		perm := math.Pow10(-(rng.Intn(3) + 1))
 	redo:
+		perm := math.Pow10(-(rng.Intn(3) + 1))
 		loop := true
 		for j := 0; j < r.d; j++ {
 			if r.d <= 5 || 5./float64(r.d) > rng.Float64() {
 				if rng.Float64() < 0.5 {
-					c[i][j] = math.Max(r.z[zmin][j]-perm*rng.Float64(), 0.0)
+					c[i][j] = math.Max(r.z[zmin][j]-perm*rng.Float64(), 0.)
+					if c[i][j] <= 0. {
+						c[i][j] = r.z[zmin][j] / 2.
+					}
 				} else {
-					c[i][j] = math.Min(r.z[zmin][j]+perm*rng.Float64(), 1.0)
+					c[i][j] = math.Min(r.z[zmin][j]+perm*rng.Float64(), 1.)
+					if c[i][j] >= 1. {
+						c[i][j] = (r.z[zmin][j] + 1.) / 2.
+					}
 				}
 				loop = false
 			} else {
@@ -208,7 +214,7 @@ func (r *rbf) evaluateFunction(c [][]float64, fun func(u []float64) float64) {
 
 func (r *rbf) evaluateSurrogate(c []float64) (float64, float64) {
 	// s: RBF interpolant/response surface
-	s, xmin := 0.0, math.MaxFloat64
+	s, xmin := 0., math.MaxFloat64
 	for i := 0; i < len(r.z); i++ {
 		x := 0.
 		for j := 0; j < r.d; j++ {
@@ -325,7 +331,7 @@ func svdSolve(a *mat.Dense, b *mat.VecDense) *mat.VecDense {
 
 func radialBasisFunction(r float64) float64 {
 	if r <= 0. {
-		log.Panicf("RBF surrogate interolation error, r = %v\n", r)
+		log.Panicf("RBF surrogate interpolation error, r = %v\n", r)
 	}
 	switch rbfsurf {
 	case gaussian:
