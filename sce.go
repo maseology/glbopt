@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"sync"
 
 	"github.com/maseology/mmaths"
 	"github.com/maseology/montecarlo/smpln"
@@ -133,10 +134,13 @@ finish:
 }
 
 func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []float64, []int) {
+	var wg sync.WaitGroup
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)
+	wg.Add(s)
 	for k := 0; k < s; k++ {
 		go func() {
+			defer wg.Done()
 			s := <-smpls
 			results <- append(s, fun(s))
 		}()
@@ -150,6 +154,7 @@ func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []fl
 		}
 		smpls <- ut
 	}
+	wg.Wait()
 	close(smpls)
 
 	f := make([]float64, s)   // function value
