@@ -69,6 +69,7 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	rank()
 
 	ngen := 0
+	fmt.Println(" SCE: evolving..")
 nextgen:
 	// step 3 partition into complexes
 	for k := 0; k < p; k++ {
@@ -119,7 +120,7 @@ nextgen:
 
 	// step 6 check for convergence
 	ngen++
-	fmt.Printf("%d\t%.6f\t%f\t%f\n", ngen, cnv, u[d[0]], f[d[0]])
+	fmt.Printf("  %d\t%.6f\t%f\t%f\n", ngen, cnv, u[d[0]], f[d[0]])
 	if ngen >= maxgen { // failure
 		log.Printf("maximimum iterations (generations) of %v reached, failed to converge on optimum\n", maxgen)
 		goto finish
@@ -134,6 +135,7 @@ finish:
 }
 
 func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []float64, []int) {
+	fmt.Println(" SCE: generating initial samples..")
 	var wg sync.WaitGroup
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)
