@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	maxgen    = 100
+	maxgen    = 50
 	cnvrgcrit = 0.01
 )
 
@@ -120,7 +120,10 @@ nextgen:
 
 	// step 6 check for convergence
 	ngen++
-	fmt.Printf("  %d\t%.6f\t%f\t%f\n", ngen, cnv, u[d[0]], f[d[0]])
+	if ngen == 1 {
+		fmt.Printf("  gen\tcnv\tOF\t[U]\n")
+	}
+	fmt.Printf("  %d\t%.6f\t%f\n\t%.2f\n", ngen, cnv, f[d[0]], u[d[0]])
 	if ngen >= maxgen { // failure
 		log.Printf("maximimum iterations (generations) of %v reached, failed to converge on optimum\n", maxgen)
 		goto finish
@@ -135,7 +138,7 @@ finish:
 }
 
 func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []float64, []int) {
-	fmt.Printf(" SCE: generating %d initial samples..\n",s)
+	fmt.Printf(" SCE: generating %d initial samples..\n", s)
 	var wg sync.WaitGroup
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)
