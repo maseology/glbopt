@@ -1,19 +1,16 @@
 package glbopt
 
-const (
-	// uncertaintyLength       = 1.e-10 // range disctretization
-	distinguishabilityConst = 1.e-10
-)
+const distinguishabilityConst = 0.01
 
 // Fibonacci optimization used to minimize any 1D continuous function
 //  ref: Bazaraa, M.S., H.D. Sherali, and C.M. Shetty, 2006. Nonlinear Programming: Theory and Algorithms, 3rd ed. John Wiley & Sonc, Inc. New Jersey. 853pp.
-//  UncertaintyLength = 0.01 'uncertainty length (l)
+//  UncertaintyLength = 0.01 'uncertainty length (l) ~ not used here, defaulting to most-refined search
 //  DistinguishabilityConst = 0.01 'distinguishability constant (e)
 //  Sample range can be set to anything. Keeping consistent with other glbopt funcations, range hard coded to U[0.,1.]
 func Fibonacci(fun func(u float64) float64) (float64, float64) {
 	// initilization step
 	const (
-		n  = 91 // largest Fibonacci number F(91) before overflow
+		n  = 91 // n samples; largest Fibonacci number F(91) before overflow
 		a1 = 0. // range min
 		b1 = 1. // range max
 	)
