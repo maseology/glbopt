@@ -1,9 +1,12 @@
 package glbopt
 
-const distinguishabilityConst = 0.01
+import (
+	"fmt"
+	"math"
+)
 
 // Fibonacci optimization used to minimize any 1D continuous function
-//  ref: Bazaraa, M.S., H.D. Sherali, and C.M. Shetty, 2006. Nonlinear Programming: Theory and Algorithms, 3rd ed. John Wiley & Sonc, Inc. New Jersey. 853pp.
+//  ref (pg.351): Bazaraa, M.S., H.D. Sherali, and C.M. Shetty, 2006. Nonlinear Programming: Theory and Algorithms, 3rd ed. John Wiley & Sonc, Inc. New Jersey. 853pp.
 //  UncertaintyLength = 0.01 'uncertainty length (l) ~ not used here, defaulting to most-refined search
 //  DistinguishabilityConst = 0.01 'distinguishability constant (e)
 //  Sample range can be set to anything. Keeping consistent with other glbopt funcations, range hard coded to U[0.,1.]
@@ -11,9 +14,10 @@ const distinguishabilityConst = 0.01
 func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 	// initilization step
 	const (
-		n  = 91 // n samples; largest Fibonacci number F(91) before overflow
-		a1 = 0. // range min
-		b1 = 1. // range max
+		n   = 91 // n samples; largest Fibonacci number F(91) before overflow
+		a1  = 0. // range min
+		b1  = 1. // range max
+		tol = 1e-7
 	)
 
 	// prime go functions
@@ -66,25 +70,30 @@ func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 			ffr2 = ffr1
 			ffr1 = fun([]float64{ff1[k+1]})
 		}
+		fmt.Printf("  %d:\tof [%.6f, %.6f]\tU [%.6f, %.6f]\n", k, ffr1, ffr2, ak[k+1], bk[k+1])
+		if math.Abs(ak[k+1]-bk[k+1]) < tol {
+			ak[n] = ak[k+1]
+			bk[n] = bk[k+1]
+			break
+		}
 		k++ // step 4
-		print(".")
 	}
 
-	// step 5
-	ff1[n] = ff1[n-1]
-	ff2[n] = ff1[n-1] + distinguishabilityConst
-	if ff2[n] > b1 {
-		ff2[n] = b1
-	}
-	ffr1 = fun([]float64{ff1[n]})
-	ffr2 = fun([]float64{ff2[n]})
-	if ffr1 > ffr2 {
-		ak[n] = ff1[n]
-		bk[n] = bk[n-1]
-	} else {
-		ak[n] = ak[n-1]
-		bk[n] = ff1[n]
-	}
+	// // step 5 (modified from original, skipping step 5)
+	// ff1[n] = ff1[n-1]
+	// ff2[n] = ff1[n-1] + 0.1 //distinguishabilityConst
+	// if ff2[n] > b1 {
+	// 	ff2[n] = b1
+	// }
+	// ffr1 = fun([]float64{ff1[n]})
+	// ffr2 = fun([]float64{ff2[n]})
+	// if ffr1 > ffr2 {
+	// 	ak[n] = ff1[n]
+	// 	bk[n] = bk[n-1]
+	// } else {
+	// 	ak[n] = ak[n-1]
+	// 	bk[n] = ff1[n]
+	// }
 
 	// the optimum solution lies in the interval [ak(n), bk(n)], thus take average value
 	uopt := []float64{0.5 * (ak[n] + bk[n])}
