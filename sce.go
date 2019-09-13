@@ -15,6 +15,7 @@ import (
 const (
 	maxgen    = 50
 	cnvrgcrit = 0.01
+	dstngcnt  = 3
 )
 
 // cmplx complex struct
@@ -43,6 +44,9 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	}
 
 	// step 1 generate sample. Note: u() and f() never to change order, only certain samples are replaced through evolution.
+	fmt.Printf(" SCE: generating %d initial samples from %d dimensions..\n", s, n)
+	// u, f := GenerateSamples(fun, n, s)
+	// d := mmaths.Sequential(s - 1)
 	u, f, d := generateSamples(fun, n, s)
 
 	//  CCE step 0 initialize
@@ -68,8 +72,10 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	}
 	rank()
 
-	ngen := 0
+	ngen, flst, fcnt := 0, -1., 0
 	fmt.Println(" SCE: evolving..")
+	fmt.Printf("  gen\tcnv\tOF\t[U]\n")
+	fmt.Printf("  %d\tNA\t%f\n\t%.2f\n", ngen, f[d[0]], u[d[0]])
 nextgen:
 	// step 3 partition into complexes
 	for k := 0; k < p; k++ {
@@ -120,16 +126,21 @@ nextgen:
 
 	// step 6 check for convergence
 	ngen++
-	if ngen == 1 {
-		fmt.Printf("  gen\tcnv\tOF\t[U]\n")
-	}
 	fmt.Printf("  %d\t%.6f\t%f\n\t%.2f\n", ngen, cnv, f[d[0]], u[d[0]])
 	if ngen >= maxgen { // failure
 		log.Printf("maximimum iterations (generations) of %v reached, failed to converge on optimum\n", maxgen)
 		goto finish
 	} else if cnv < cnvrgcrit { // parameter convergence
 		goto finish
+	} else if flst == f[d[0]] {
+		if fcnt >= dstngcnt {
+			goto finish
+		}
+		fcnt++
+		goto nextgen
 	} else {
+		flst = f[d[0]]
+		fcnt = 0
 		goto nextgen
 	}
 
@@ -138,7 +149,7 @@ finish:
 }
 
 func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []float64, []int) {
-	fmt.Printf(" SCE: generating %d initial samples..\n", s)
+	fmt.Printf(" SCE: generating %d initial samples from %d dimensions..\n", s, n)
 	var wg sync.WaitGroup
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)

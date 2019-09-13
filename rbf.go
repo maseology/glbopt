@@ -1,6 +1,7 @@
 package glbopt
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -38,6 +39,7 @@ var w = [4]float64{0.3, 0.5, 0.8, 0.95}
 func SurrogateRBF(nIter, nDim int, rng *rand.Rand, fun func(u []float64) float64) ([]float64, float64) {
 	// ref: Müller Shoemaker Piché 2013 SO-MI: A surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems for implementation
 	// only minimization function supported
+
 	var r rbf
 	r.d = nDim
 	r.initialize(nIter, fun, rng)
@@ -67,30 +69,42 @@ func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Ran
 	if r.nc > 5000 {
 		r.nc = 5000
 	}
-	uin := make(chan []float64)
-	fout := make(chan float64)
+
 	r.z = make([][]float64, s, s+2*nIter)
 	r.y = make([]float64, s, s+2*nIter)
-	sp := smpln.NewLHC(s, r.d)
-	sp.Make(rng, false)
+	u, f := GenerateSamples(fun, r.d, s)
 	for k := 0; k < s; k++ {
-		go func() {
-			fout <- fun(<-uin)
-		}()
 		z1 := make([]float64, r.d)
 		for j := 0; j < r.d; j++ {
-			z1[j] = sp.U[j][k]
+			z1[j] = u[k][j]
 		}
 		r.z[k] = z1
-		uin <- z1
+		r.y[k] = f[k]
 	}
 
-	// collect results
-	for k := 0; k < s; k++ {
-		r.y[k] = <-fout
-	}
-	close(uin)
-	close(fout)
+	// uin := make(chan []float64)
+	// fout := make(chan float64)
+	// sp := smpln.NewLHC(s, r.d)
+	// sp.Make(rng, false)
+	// for k := 0; k < s; k++ {
+	// 	go func() {
+	// 		fout <- fun(<-uin)
+	// 	}()
+	// 	z1 := make([]float64, r.d)
+	// 	for j := 0; j < r.d; j++ {
+	// 		z1[j] = sp.U[j][k]
+	// 	}
+	// 	r.z[k] = z1
+	// 	uin <- z1
+	// }
+
+	// // collect results
+	// for k := 0; k < s; k++ {
+	// 	r.y[k] = <-fout
+	// }
+	// close(uin)
+	// close(fout)
+
 	r.solveLambdaPoly()
 	// r.plotInit("rbf0.png", fun)
 
@@ -194,12 +208,12 @@ func (r *rbf) evaluateFunction(c [][]float64, fun func(u []float64) float64) {
 	}
 	if isv == -1 {
 		for i := 0; i < r.nc; i++ {
-			println(rnorm[i])
+			fmt.Println(rnorm[i])
 		}
 		for i := 0; i < len(r.z); i++ {
-			println(r.lambda[i])
+			fmt.Println(r.lambda[i])
 		}
-		panic("Surrogate radial basis function could not find a potential minimum candidate")
+		log.Fatalln("Surrogate radial basis function could not find a potential minimum candidate")
 	}
 
 	r.z = append(r.z, c[isv])
