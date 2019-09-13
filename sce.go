@@ -149,7 +149,6 @@ finish:
 }
 
 func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []float64, []int) {
-	fmt.Printf(" SCE: generating %d initial samples from %d dimensions..\n", s, n)
 	var wg sync.WaitGroup
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)

@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/maseology/montecarlo"
 	"github.com/maseology/montecarlo/smpln"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/plot"
@@ -72,7 +73,7 @@ func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Ran
 
 	r.z = make([][]float64, s, s+2*nIter)
 	r.y = make([]float64, s, s+2*nIter)
-	u, f := GenerateSamples(fun, r.d, s)
+	u, f := montecarlo.GenerateSamples(fun, r.d, s)
 	for k := 0; k < s; k++ {
 		z1 := make([]float64, r.d)
 		for j := 0; j < r.d; j++ {
@@ -122,8 +123,7 @@ func (r *rbf) addEvaluations(fun func(u []float64) float64, rng *rand.Rand) {
 
 func (r *rbf) addGlobalEvaluation(fun func(u []float64) float64, rng *rand.Rand) {
 	c := make([][]float64, r.nc) // candate points
-	sp := smpln.NewLHC(r.nc, r.d)
-	sp.Make(rng, false)
+	sp := smpln.NewLHC(rng, r.nc, r.d, false)
 	for i := 0; i < r.nc; i++ {
 		c[i] = make([]float64, r.d)
 		for j := 0; j < r.d; j++ {
