@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	maxgen    = 50
+	maxgen    = 100
 	cnvrgcrit = 0.01
-	dstngcnt  = 3
+	dstngcnt  = 1000
 )
 
 // cmplx complex struct
@@ -44,7 +44,7 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	}
 
 	// step 1 generate sample. Note: u() and f() never to change order, only certain samples are replaced through evolution.
-	fmt.Printf(" SCE: generating %d initial samples from %d dimensions..\n", s, n)
+	fmt.Printf(" SCE: generating %d initial samples using %d complexes of %d dimensions..\n", s, p, n)
 	// u, f := GenerateSamples(fun, n, s)
 	// d := mmaths.Sequential(s - 1)
 	u, f, d := generateSamples(fun, n, s)
