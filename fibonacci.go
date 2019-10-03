@@ -1,14 +1,13 @@
 package glbopt
 
 import (
-	"fmt"
 	"math"
 )
 
 // Fibonacci optimization used to minimize any 1D continuous function
 //  ref (pg.351): Bazaraa, M.S., H.D. Sherali, and C.M. Shetty, 2006. Nonlinear Programming: Theory and Algorithms, 3rd ed. John Wiley & Sonc, Inc. New Jersey. 853pp.
-//  UncertaintyLength = 0.01 'uncertainty length (l) ~ not used here, defaulting to most-refined search
-//  DistinguishabilityConst = 0.01 'distinguishability constant (e)
+//  UncertaintyLength = 0.01 uncertainty length (l) ~ not used here, defaulting to most-refined search
+//  DistinguishabilityConst = 0.01 distinguishability constant (e)
 //  Sample range can be set to anything. Keeping consistent with other glbopt funcations, range hard coded to U[0.,1.]
 //  This is only a 1-parameter optimizer, but need to keep slice variable input to maintain interface compatibility
 func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
@@ -70,7 +69,7 @@ func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 			ffr2 = ffr1
 			ffr1 = fun([]float64{ff1[k+1]})
 		}
-		fmt.Printf("  %d:\tof [%.6f, %.6f]\tU [%.6f, %.6f]\n", k, ffr1, ffr2, ak[k+1], bk[k+1])
+		// fmt.Printf("  %d:\tof [%.6f, %.6f]\tU [%.6f, %.6f]\n", k, ffr1, ffr2, ak[k+1], bk[k+1])
 		if math.Abs(ak[k+1]-bk[k+1]) < tol {
 			ak[n] = ak[k+1]
 			bk[n] = bk[k+1]
