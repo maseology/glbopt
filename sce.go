@@ -47,7 +47,7 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	fmt.Printf(" SCE: generating %d initial samples using %d complexes of %d dimensions..\n", s, p, n)
 	// u, f := GenerateSamples(fun, n, s)
 	// d := mmaths.Sequential(s - 1)
-	u, f, d := generateSamples(fun, n, s)
+	u, f, d := generateSamples(fun, n, s, rng)
 
 	//  CCE step 0 initialize
 	alpha := 1 // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
@@ -148,7 +148,7 @@ finish:
 	return u[d[0]], f[d[0]]
 }
 
-func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []float64, []int) {
+func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([][]float64, []float64, []int) {
 	var wg sync.WaitGroup
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)
@@ -161,7 +161,7 @@ func generateSamples(fun func(p []float64) float64, n, s int) ([][]float64, []fl
 		}()
 	}
 
-	sp := smpln.NewHalton(s, n)
+	sp := smpln.NewLHC(rng, s, n, false) // smpln.NewHalton(s, n)
 	for k := 0; k < s; k++ {
 		ut := make([]float64, n)
 		for j := 0; j < n; j++ {
