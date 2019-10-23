@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/maseology/mmaths"
+	"github.com/maseology/mmio"
 	"github.com/maseology/montecarlo/smpln"
 )
 
@@ -64,10 +65,10 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	rank := func() {
 		f2 := make([]float64, len(f))
 		copy(f2, f)
-		d = mmaths.Sequential(len(d) - 1) // resetting d
+		d = mmio.Sequential(len(d) - 1) // resetting d
 		sort.Sort(mmaths.IndexedSlice{Indx: d, Val: f2})
 		if !minimize {
-			mmaths.Rev(d) // ordering from best (highest evaluated score) to worst
+			mmio.Rev(d) // ordering from best (highest evaluated score) to worst
 		}
 	}
 	rank()
@@ -196,12 +197,12 @@ func (c *cmplx) cce(cnv chan<- float64, w []float64, n, m, q, alpha, beta int, m
 		c.sceuacce(w, n, m, q, alpha, minimize, fun, rng)
 
 		// step 4 replace parents by offspring
-		ct, ft, fi := make([][]float64, m), make([]float64, m), mmaths.Sequential(m-1)
+		ct, ft, fi := make([][]float64, m), make([]float64, m), mmio.Sequential(m-1)
 		copy(ft, c.f)
 		sort.Sort(mmaths.IndexedSlice{Indx: fi, Val: c.f})
 		if !minimize { // ordering from best (highest evaluated score) to worst
-			mmaths.Rev(fi)
-			mmaths.RevF(c.f)
+			mmio.Rev(fi)
+			mmio.RevF(c.f)
 		}
 		copy(ct, c.u)
 		for i := 0; i < m; i++ {
@@ -283,8 +284,8 @@ func (c *cmplx) sceuacce(w []float64, n, m, q, alpha int, minimize bool, fun fun
 		//  3a) sort L and B by function value
 		sort.Sort(mmaths.IndexedSlice{Indx: l, Val: vi})
 		if !minimize { // ordering from best (highest evaluated score) to worst
-			mmaths.Rev(l)
-			mmaths.RevF(vi)
+			mmio.Rev(l)
+			mmio.RevF(vi)
 		}
 
 		// determine subcomplex centroid g
