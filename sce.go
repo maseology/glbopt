@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	maxgen    = 100
+	maxgen    = 500
 	cnvrgcrit = 0.01
 	dstngcnt  = 1000
+	alpha     = 1 // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
 )
 
 // cmplx complex struct
@@ -51,7 +52,6 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	u, f, d := generateSamples(fun, n, s, rng)
 
 	//  CCE step 0 initialize
-	alpha := 1 // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
 	beta := m  // number of offspring; Duan etal (1993) sets this equal to m [beta >= 1]
 	q := n + 1 // number of points that define a subcomplex; setting q=n+1 is the standard simplex size specified by Nelder and Mead (1965), as set by Duan etal (1993) [2<=q<=m]
 
@@ -91,7 +91,7 @@ nextgen:
 	for k := 0; k < p; k++ {
 		go func() {
 			c := <-cmplxs
-			c.cce(cnvs, w, n, m, q, alpha, beta, minimize, fun, rng)
+			c.cce(cnvs, w, n, m, q, beta, minimize, fun, rng)
 
 			// reset function values parameter samples
 			for i := 0; i < m; i++ {
@@ -188,13 +188,13 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 	return u, f, d
 }
 
-func (c *cmplx) cce(cnv chan<- float64, w []float64, n, m, q, alpha, beta int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
+func (c *cmplx) cce(cnv chan<- float64, w []float64, n, m, q, beta int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
 	//  CCE step 0 initialize (assigned above)
 	//  CCE step 1 assign triangular weights; sum(w)=1 (built above)
 	//  CCE steps 2-5, applied to every k complex
 	for j := 0; j < beta; j++ {
 		//  CCE step 2 select parents & step 3 generate offspring
-		c.sceuacce(w, n, m, q, alpha, minimize, fun, rng)
+		c.sceuacce(w, n, m, q, minimize, fun, rng)
 
 		// step 4 replace parents by offspring
 		ct, ft, fi := make([][]float64, m), make([]float64, m), mmio.Sequential(m-1)
@@ -257,7 +257,7 @@ func smallestHypercube(u [][]float64, s, n int) ([]float64, []float64) {
 
 // competitive complex evolution (CCE)
 // from: Duan, Q.Y., V.K. Gupta, and S. Sorooshian, 1993. Shuffled Complex Evolution Approach for Effective and Efficient Global Minimization. Journal of Optimization Theory and Applications 76(3) pp.501-521.
-func (c *cmplx) sceuacce(w []float64, n, m, q, alpha int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
+func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []float64) float64, rng *rand.Rand) {
 	// step 2 select q parents using assigned weights; q is defined as a subcomplex
 	l := make([]int, q)      // L: the locations of 'a' which are used to construct B=[ui, vi]
 	vi := make([]float64, q) // function values associated with ui
