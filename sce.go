@@ -14,7 +14,7 @@ import (
 
 const (
 	maxgen    = 500
-	cnvrgcrit = 0.01
+	cnvrgcrit = 0.05
 	dstngcnt  = 1000
 	alpha     = 1 // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
 )
