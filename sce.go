@@ -14,7 +14,7 @@ import (
 
 const (
 	maxgen    = 500
-	cnvrgcrit = 0.05
+	cnvrgcrit = 0.01
 	dstngcnt  = 1000
 	alpha     = 1 // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
 )
@@ -184,6 +184,27 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 		f[k] = r[n]
 		d[k] = k
 	}
+
+	// sp := smpln.NewLHC(rng, s, n, false)
+	// f := make([]float64, s)   // function value
+	// d := make([]int, s)       // function rank; d[0] is the best evaluated
+	// u := make([][]float64, s) // sample points
+	// for k := 0; k < s; k++ {
+	// 	fmt.Print(k)
+	// 	ut := make([]float64, n)
+	// 	for j := 0; j < n; j++ {
+	// 		ut[j] = sp.U[j][k]
+	// 	}
+	// 	r := append(ut, fun(ut))
+	// 	u[k] = make([]float64, n)
+	// 	for j := 0; j < n; j++ {
+	// 		u[k][j] = r[j]
+	// 	}
+	// 	f[k] = r[n]
+	// 	d[k] = k
+	// 	fmt.Println(".")
+	// }
+
 	return u, f, d
 }
 
