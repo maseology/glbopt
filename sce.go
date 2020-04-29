@@ -15,8 +15,8 @@ import (
 const (
 	maxgen    = 500
 	cnvrgcrit = 0.01
-	dstngcnt  = 1000
-	alpha     = 1 // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
+	dstngcnt  = 1000 // number of repeated generations where no change in objfunc is found
+	alpha     = 1    // number of evolutionary steps; Duan etal (1993) sets this equal to 1. [alpha >= 1]
 )
 
 // cmplx complex struct
