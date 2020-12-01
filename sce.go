@@ -74,8 +74,8 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 
 	ngen, flst, fcnt := 0, -1., 0
 	fmt.Println(" SCE: evolving..")
-	fmt.Printf("  gen\tcnv\tOF\t[U]\n")
-	fmt.Printf("  %d\tNA\t%f\n\t%.2f\n", ngen, f[d[0]], u[d[0]])
+	fmt.Printf("  gen\tcnv\t\tOF\t\t[U]\n")
+	fmt.Printf("  %d\tNA\t\t%f\n\t%.3f\n", ngen, f[d[0]], u[d[0]])
 nextgen:
 	// step 3 partition into complexes
 	for k := 0; k < p; k++ {
@@ -121,12 +121,12 @@ nextgen:
 	}
 	close(cnvs)
 
-	// step 5 shuffle complexes firt by re-ranking d() (Note: f() has never changed order)
+	// step 5 shuffle complexes first by re-ranking d() (Note: f() has never changed order)
 	rank()
 
 	// step 6 check for convergence
 	ngen++
-	fmt.Printf("  %d\t%.6f\t%f\n\t%.2f\n", ngen, cnv, f[d[0]], u[d[0]])
+	fmt.Printf("  %d\t%.6f\t%f\n\t%.3f\n", ngen, cnv, f[d[0]], u[d[0]])
 	if ngen >= maxgen { // failure
 		log.Printf("maximimum iterations (generations) of %v reached, failed to converge on optimum\n", maxgen)
 		goto finish
