@@ -45,7 +45,7 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	}
 
 	// step 1 generate sample. Note: u() and f() never to change order, only certain samples are replaced through evolution.
-	fmt.Printf(" SCE: generating %d initial samples using %d complexes of %d dimensions..\n", s, p, n)
+	fmt.Printf(" SCE: generating %d initial samples to fulfil %d %d-dimensional complexes..\n", s, p, n)
 	// u, f := GenerateSamples(fun, n, s)
 	// d := mmaths.Sequential(s - 1)
 	u, f, d := generateSamples(fun, n, s, rng)
@@ -85,10 +85,13 @@ nextgen:
 	}
 
 	// step 4 evolve - competitive complex evolution (CCE):
+	var wg sync.WaitGroup
 	cmplxs := make(chan cmplx)
 	cnvs := make(chan float64, p)
+	wg.Add(p)
 	for k := 0; k < p; k++ {
 		go func() {
+			defer wg.Done()
 			c := <-cmplxs
 			c.cce(cnvs, w, n, m, q, beta, minimize, fun, rng)
 
@@ -110,7 +113,6 @@ nextgen:
 		c := cmplx{uk, fk, k}
 		cmplxs <- c
 	}
-	close(cmplxs)
 
 	cnv := 0.
 	for k := 0; k < p; k++ {
@@ -119,6 +121,8 @@ nextgen:
 			cnv = ck
 		}
 	}
+	wg.Wait()
+	close(cmplxs)
 	close(cnvs)
 
 	// step 5 shuffle complexes first by re-ranking d() (Note: f() has never changed order)
@@ -184,7 +188,9 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 		f[k] = r[n]
 		d[k] = k
 	}
+	close(results)
 
+	// serial version for testing
 	// sp := smpln.NewLHC(rng, s, n, false)
 	// f := make([]float64, s)   // function value
 	// d := make([]int, s)       // function rank; d[0] is the best evaluated

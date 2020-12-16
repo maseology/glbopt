@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"runtime"
 
 	"github.com/maseology/montecarlo"
 	"github.com/maseology/montecarlo/smpln"
@@ -66,14 +67,20 @@ func SurrogateRBF(nIter, nDim int, rng *rand.Rand, fun func(u []float64) float64
 
 func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Rand) {
 	s := 2 * (r.d + 1) //* runtime.GOMAXPROCS(0) // hard-coded multiple of initial runs (see Müller Shoemaker 2014 Influence of ensemble surrogate models and sampling strategy on the solution quality of algorithms for computationally expensive black-box global optimization problems)
-	r.nc = 500 * r.d   // hard-coded number of candidates
+	if s < runtime.GOMAXPROCS(0) {
+		s = runtime.GOMAXPROCS(0)
+	}
+	r.nc = 500 * r.d // hard-coded number of candidates
 	if r.nc > 5000 {
 		r.nc = 5000
 	}
 
 	r.z = make([][]float64, s, s+2*nIter)
 	r.y = make([]float64, s, s+2*nIter)
+
+	fmt.Printf(" RBF: generating initial surface from %d samples..", s)
 	u, f := montecarlo.GenerateSamples(fun, r.d, s)
+	fmt.Println("complete")
 	for k := 0; k < s; k++ {
 		z1 := make([]float64, r.d)
 		for j := 0; j < r.d; j++ {
