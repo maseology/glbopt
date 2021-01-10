@@ -11,7 +11,7 @@ import (
 //  Sample range can be set to anything. Keeping consistent with other glbopt funcations, range hard coded to U[0.,1.]
 //  This is only a 1-parameter optimizer, but need to keep slice variable input to maintain interface compatibility
 func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
-	// initilization step
+	// initialization step
 	const (
 		n   = 91 // n samples; largest Fibonacci number F(91) before overflow
 		a1  = 0. // range min
