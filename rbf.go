@@ -327,8 +327,9 @@ func svdSolve(a *mat.Dense, b *mat.VecDense) *mat.VecDense {
 	if !svd.Factorize(a, mat.SVDFull) {
 		panic("SVD solver error")
 	}
-	u := svd.UTo(nil)
-	v := svd.VTo(nil)
+	var u, v *mat.Dense
+	svd.UTo(u)
+	svd.VTo(v)
 	sv := svd.Values(nil) // sigma vectors
 	for i := 0; i < len(sv); i++ {
 		if sv[i] != 0. {
@@ -383,10 +384,7 @@ func radialBasisFunction(r float64) float64 {
 }
 
 func (r *rbf) plotInit(fp string, fun func(u []float64) float64) {
-	p, err := plot.New()
-	if err != nil {
-		panic(err)
-	}
+	p := plot.New()
 
 	p.Title.Text = fp
 	p.X.Label.Text = "z"
@@ -397,7 +395,7 @@ func (r *rbf) plotInit(fp string, fun func(u []float64) float64) {
 		z0[i] = r.z[i][0] //maths.LinearTransform(-2., 2., z[i][0])
 	}
 
-	err = plotutil.AddLines(p, objfunc(fun))
+	err := plotutil.AddLines(p, objfunc(fun))
 	if err != nil {
 		panic(err)
 	}
