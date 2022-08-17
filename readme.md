@@ -11,7 +11,9 @@ A go package for global optimization
 ## dependencies:
 
 * go montecarlo (https://github.com/maseology/montecarlo)
-* go mmaths (https://github.com/maseology/mmaths)
+* go pseudo-random number generator (mm) (https://github.com/maseology/pnrg)
+* mmplot (https://github.com/maseology/mmPlot)
+* mmaths (https://github.com/maseology/mmaths)
 * gonum (https://github.com/gonum/gonum)
 
 ## References
