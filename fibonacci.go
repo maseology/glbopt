@@ -10,7 +10,7 @@ import (
 //  DistinguishabilityConst = 0.01 distinguishability constant (e)
 //  Sample range can be set to anything. Keeping consistent with other glbopt funcations, range hard coded to U[0.,1.]
 //  This is only a 1-parameter optimizer, but need to keep slice variable input to maintain interface compatibility
-func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
+func Fibonacci(fun func(u1 float64) float64) (float64, float64) {
 	// initialization step
 	const (
 		n   = 91 // n samples; largest Fibonacci number F(91) before overflow
@@ -28,7 +28,7 @@ func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 			defer close(r)
 			for {
 				select {
-				case r <- fun([]float64{v}):
+				case r <- fun(v):
 				case <-done:
 					return
 				}
@@ -57,7 +57,7 @@ func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 				break
 			}
 			ffr1 = ffr2
-			ffr2 = fun([]float64{ff2[k+1]})
+			ffr2 = fun(ff2[k+1])
 		} else { // step 3
 			bk[k+1] = ff2[k]
 			ak[k+1] = ak[k]
@@ -67,7 +67,7 @@ func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 				break
 			}
 			ffr2 = ffr1
-			ffr1 = fun([]float64{ff1[k+1]})
+			ffr1 = fun(ff1[k+1])
 		}
 		// fmt.Printf("  %d:\tof [%.6f, %.6f]\tU [%.6f, %.6f]\n", k, ffr1, ffr2, ak[k+1], bk[k+1])
 		if math.Abs(ak[k+1]-bk[k+1]) < tol {
@@ -95,8 +95,8 @@ func Fibonacci(fun func(u1 []float64) float64) (float64, float64) {
 	// }
 
 	// the optimum solution lies in the interval [ak(n), bk(n)], thus take average value
-	uopt := []float64{0.5 * (ak[n] + bk[n])}
-	return uopt[0], fun(uopt)
+	uopt := 0.5 * (ak[n] + bk[n])
+	return uopt, fun(uopt)
 }
 
 func fibonacciSample(a, b, fibonacciNumer, fibonacciDenom float64) float64 {

@@ -66,7 +66,7 @@ func SurrogateRBF(nIter, nDim int, rng *rand.Rand, fun func(u []float64) float64
 }
 
 func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Rand) {
-	s := 2 * (r.d + 1) //* runtime.GOMAXPROCS(0) // hard-coded multiple of initial runs (see Müller Shoemaker 2014 Influence of ensemble surrogate models and sampling strategy on the solution quality of algorithms for computationally expensive black-box global optimization problems)
+	s := 2 * (r.d + 1) // hard-coded multiple of initial runs (see Müller Shoemaker 2014 Influence of ensemble surrogate models and sampling strategy on the solution quality of algorithms for computationally expensive black-box global optimization problems)
 	if s < runtime.GOMAXPROCS(0) {
 		s = runtime.GOMAXPROCS(0)
 	}
@@ -79,7 +79,7 @@ func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Ran
 	r.y = make([]float64, s, s+2*nIter)
 
 	fmt.Printf(" RBF: generating initial surface from %d samples..", s)
-	u, f := montecarlo.GenerateSamples(fun, r.d, s)
+	u, f := montecarlo.GenerateSamples(fun, r.d, s, runtime.GOMAXPROCS(0))
 	fmt.Println("complete")
 	for k := 0; k < s; k++ {
 		z1 := make([]float64, r.d)
