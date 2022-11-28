@@ -38,7 +38,7 @@ type rbf struct {
 var w = [4]float64{0.3, 0.5, 0.8, 0.95}
 
 // SurrogateRBF : A radial basis function surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems
-func SurrogateRBF(nIter, nDim int, rng *rand.Rand, fun func(u []float64) float64) ([]float64, float64) {
+func SurrogateRBF(nIter, nDim int, rng *rand.Rand, fun func(u []float64, i int) float64) ([]float64, float64) {
 	// ref: Müller Shoemaker Piché 2013 SO-MI: A surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems for implementation
 	// only minimization function supported
 
@@ -65,7 +65,7 @@ func SurrogateRBF(nIter, nDim int, rng *rand.Rand, fun func(u []float64) float64
 	return r.z[ksv], r.y[ksv]
 }
 
-func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Rand) {
+func (r *rbf) initialize(nIter int, fun func(u []float64, i int) float64, rng *rand.Rand) {
 	s := 2 * (r.d + 1) // hard-coded multiple of initial runs (see Müller Shoemaker 2014 Influence of ensemble surrogate models and sampling strategy on the solution quality of algorithms for computationally expensive black-box global optimization problems)
 	if s < runtime.GOMAXPROCS(0) {
 		s = runtime.GOMAXPROCS(0)
@@ -123,12 +123,12 @@ func (r *rbf) initialize(nIter int, fun func(u []float64) float64, rng *rand.Ran
 	}
 }
 
-func (r *rbf) addEvaluations(fun func(u []float64) float64, rng *rand.Rand) {
+func (r *rbf) addEvaluations(fun func(u []float64, i int) float64, rng *rand.Rand) {
 	r.addGlobalEvaluation(fun, rng) // select potential minimum candidate
 	r.addLocalEvaluation(fun, rng)  // select potential local minimum candidate
 }
 
-func (r *rbf) addGlobalEvaluation(fun func(u []float64) float64, rng *rand.Rand) {
+func (r *rbf) addGlobalEvaluation(fun func(u []float64, i int) float64, rng *rand.Rand) {
 	c := make([][]float64, r.nc) // candate points
 	sp := smpln.NewLHC(rng, r.nc, r.d, false)
 	for i := 0; i < r.nc; i++ {
@@ -140,7 +140,7 @@ func (r *rbf) addGlobalEvaluation(fun func(u []float64) float64, rng *rand.Rand)
 	r.evaluateFunction(c, fun)
 }
 
-func (r *rbf) addLocalEvaluation(fun func(u []float64) float64, rng *rand.Rand) {
+func (r *rbf) addLocalEvaluation(fun func(u []float64, i int) float64, rng *rand.Rand) {
 	ymin, zmin := math.MaxFloat64, -1
 	for i := 0; i < len(r.z); i++ {
 		if r.y[i] < ymin {
@@ -179,7 +179,7 @@ func (r *rbf) addLocalEvaluation(fun func(u []float64) float64, rng *rand.Rand) 
 	r.evaluateFunction(c, fun)
 }
 
-func (r *rbf) evaluateFunction(c [][]float64, fun func(u []float64) float64) {
+func (r *rbf) evaluateFunction(c [][]float64, fun func(u []float64, i int) float64) {
 	s := make([]float64, r.nc)     // response surface
 	rnorm := make([]float64, r.nc) // Euclidean norm
 	sn, sx, rn, rx := math.MaxFloat64, -math.MaxFloat64, math.MaxFloat64, -math.MaxFloat64
@@ -224,7 +224,7 @@ func (r *rbf) evaluateFunction(c [][]float64, fun func(u []float64) float64) {
 	}
 
 	r.z = append(r.z, c[isv])
-	r.y = append(r.y, fun(c[isv])) // expensive evaluation
+	r.y = append(r.y, fun(c[isv], isv)) // expensive evaluation
 	r.solveLambdaPoly()
 
 	r.wi++ // cycle weights
