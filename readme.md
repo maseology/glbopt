@@ -10,6 +10,8 @@ A go package for global optimization
 
 **SurrogateRBF:** A radial basis function surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems (after Müller et. al., 2013; and Regis and Shoemaker, 2005)
 
+**Dynamically Dimensioned Search:** The DDS algorithm (Tolson and Shoemaker, 2007)
+
 ## Example
 
 ```go
@@ -45,3 +47,5 @@ Duan, Q.Y., V.K. Gupta, and S. Sorooshian, 1993. Shuffled Complex Evolution Appr
 Müller, J., C.A. Shoemaker, and R. Piché 2013. SO-MI: A surrogate model algorithm for computationally expensive nonlinear mixed-integer black-box global optimization problems. Computers & Operations Research 40(5): 1383-1400.
 
 Regis, R.G. and C.A. Shoemaker, 2005. Constrained Global Optimization of Expensive BlackBox Functions Using Radial Basis Functions. Journal of Global Optimization 31: 153–171.
+
+Tolson B.A. and C.A. Shoemaker, 2007. Dynamically dimensioned search algorithm for computationally efficient watershed model calibration. Water Resources Research 43(1): 16pp.
