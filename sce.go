@@ -46,7 +46,7 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	}
 
 	// step 1 generate sample. Note: u() and f() never to change order, only certain samples are replaced through evolution.
-	fmt.Printf(" SCE: generating %d initial samples to fulfill %d %d-dimensional complexes..\n", s, p, n)
+	fmt.Printf(" SCE: generating %d initial samples to fulfill %d %d-complexes covering %d dimensions..\n", s, p, m, n)
 	// u, f := GenerateSamples(fun, n, s)
 	// d := mmaths.Sequential(s - 1)
 	u, f, d := generateSamples(fun, n, s, rng)
