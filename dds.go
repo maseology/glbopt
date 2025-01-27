@@ -11,8 +11,9 @@ const pertubationValue = .2 // Tolson: "I never change this value"
 // DDS - The Dynamically Dimensioned Search algorithm
 // Tolson B.A. and C.A. Shoemaker, 2007. Dynamically dimensioned search algorithm for computationally efficient watershed model calibration. Water Resources Research 43(1): 16pp.
 // nDim: number of dimensions; nSmpl: max number of samples
-func DDS(nDim, nSmpl int, rng *rand.Rand, fun func(u []float64) float64, minimize bool) ([]float64, float64) {
+func DDS(nDim, nSmpl int, rng *rand.Rand, fun func(u []float64) float64, minimize bool) ([]float64, float64, int) {
 	// step2: random selection of initial samples
+	ibest := -1
 	ubest := make([]float64, nDim)
 	for d := 0; d < nDim; d++ {
 		ubest[d] = rng.Float64()
@@ -56,18 +57,20 @@ func DDS(nDim, nSmpl int, rng *rand.Rand, fun func(u []float64) float64, minimiz
 		if minimize {
 			if fnew <= fbest {
 				fbest = fnew
+				ibest = i
 				copy(ubest, unew)
 				fmt.Printf("   iter %5d (%4f) OF: %.6f  %.3f\n", i, pi, fbest, ubest)
 			}
 		} else {
 			if fnew >= fbest {
 				fbest = fnew
+				ibest = i
 				copy(ubest, unew)
 				fmt.Printf("   iter %5d (%4f) OF: %.6f  %.3f\n", i, pi, fbest, ubest)
 			}
 		}
 	}
 
-	fmt.Printf("  > final      OF: %.6f  %.3f\n", fbest, ubest)
-	return ubest, fbest
+	fmt.Printf("  > final (iteration %d)   OF: %.6f  %.3f\n", ibest, fbest, ubest)
+	return ubest, fbest, ibest
 }
