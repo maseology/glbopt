@@ -41,12 +41,12 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	m := 2*nDim + 1       // number of points per complex. Can be specified, but default (Duan etal 1993) used here. Just ensure m >= n+1
 	s := p * m            // sample size
 	a := make([][]int, p) // complex cross-reference
-	for i := 0; i < p; i++ {
+	for i := range p {
 		a[i] = make([]int, m)
 	}
 
 	// step 1 generate sample. Note: u() and f() never to change order, only certain samples are replaced through evolution.
-	fmt.Printf(" SCE: generating %d initial samples to fulfill %d %d-complexes covering %d dimensions..\n", s, p, m, n)
+	fmt.Printf(" SCE: generating %d initial samples to fulfil %d %d-complexes covering %d dimensions..\n", s, p, m, n)
 	// u, f := GenerateSamples(fun, n, s)
 	// d := mmaths.Sequential(s - 1)
 	u, f, d := generateSamples(fun, n, s, rng)
@@ -57,7 +57,7 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 
 	//  CCE step 1 assign triangular weights; sum(w)=1
 	w := make([]float64, m)
-	for i := 0; i < m; i++ {
+	for i := range m {
 		w[i] = float64(2*(m-i)) / float64(m*(m+1)) // altered from Duan etal. (1993), to handle a zero-based array
 	}
 
@@ -79,8 +79,8 @@ func SCE(nComplx, nDim int, rng *rand.Rand, fun func(u []float64) float64, minim
 	fmt.Printf("  %d\tNA\t\t%f\n\t%.3f\n", ngen, f[d[0]], u[d[0]])
 nextgen:
 	// step 3 partition into complexes
-	for k := 0; k < p; k++ {
-		for j := 0; j < m; j++ {
+	for k := range p {
+		for j := range m {
 			a[k][j] = d[k+p*j] // complexes a() becomes a pointer to u() and f()
 		}
 	}
@@ -90,24 +90,24 @@ nextgen:
 	cmplxs := make(chan cmplx)
 	cnvs := make(chan float64, p)
 	wg.Add(p)
-	for k := 0; k < p; k++ {
+	for range p {
 		go func() {
 			defer wg.Done()
 			c := <-cmplxs
 			c.cce(cnvs, w, n, m, q, beta, minimize, fun, rng)
 
 			// reset function values parameter samples
-			for i := 0; i < m; i++ {
+			for i := range m {
 				f[a[c.k][i]] = c.f[i]
 				u[a[c.k][i]] = c.u[i]
 			}
 		}()
 	}
 
-	for k := 0; k < p; k++ {
+	for k := range p {
 		uk := make([][]float64, m)
 		fk := make([]float64, m)
-		for j := 0; j < m; j++ {
+		for j := range m {
 			uk[j] = u[a[k][j]] // pointer to u-array
 			fk[j] = f[a[k][j]]
 		}
@@ -116,7 +116,7 @@ nextgen:
 	}
 
 	cnv := 0.
-	for k := 0; k < p; k++ {
+	for range p {
 		ck := <-cnvs
 		if ck > cnv {
 			cnv = ck
@@ -158,7 +158,7 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 	smpls := make(chan []float64, s)
 	results := make(chan []float64, s)
 	wg.Add(s)
-	for k := 0; k < s; k++ {
+	for range s {
 		go func() {
 			defer wg.Done()
 			s := <-smpls
@@ -167,9 +167,9 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 	}
 
 	sp := smpln.NewLHC(rng, s, n, false) // smpln.NewHalton(s, n)
-	for k := 0; k < s; k++ {
+	for k := range s {
 		ut := make([]float64, n)
-		for j := 0; j < n; j++ {
+		for j := range n {
 			ut[j] = sp.U[j][k]
 		}
 		smpls <- ut
@@ -180,10 +180,10 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 	f := make([]float64, s)   // function value
 	d := make([]int, s)       // function rank; d[0] is the best evaluated
 	u := make([][]float64, s) // sample points
-	for k := 0; k < s; k++ {
+	for k := range s {
 		u[k] = make([]float64, n)
 		r := <-results
-		for j := 0; j < n; j++ {
+		for j := range n {
 			u[k][j] = r[j]
 		}
 		f[k] = r[n]
@@ -196,15 +196,15 @@ func generateSamples(fun func(p []float64) float64, n, s int, rng *rand.Rand) ([
 	// f := make([]float64, s)   // function value
 	// d := make([]int, s)       // function rank; d[0] is the best evaluated
 	// u := make([][]float64, s) // sample points
-	// for k := 0; k < s; k++ {
+	// for k := range s {
 	// 	fmt.Print(k)
 	// 	ut := make([]float64, n)
-	// 	for j := 0; j < n; j++ {
+	// 	for j := range n {
 	// 		ut[j] = sp.U[j][k]
 	// 	}
 	// 	r := append(ut, fun(ut))
 	// 	u[k] = make([]float64, n)
-	// 	for j := 0; j < n; j++ {
+	// 	for j := range n {
 	// 		u[k][j] = r[j]
 	// 	}
 	// 	f[k] = r[n]
@@ -232,7 +232,7 @@ func (c *cmplx) cce(cnv chan<- float64, w []float64, n, m, q, beta int, minimize
 			slice.RevF(c.f)
 		}
 		copy(ct, c.u)
-		for i := 0; i < m; i++ {
+		for i := range m {
 			c.u[i] = ct[fi[i]]
 		}
 	}
@@ -242,7 +242,7 @@ func (c *cmplx) cce(cnv chan<- float64, w []float64, n, m, q, beta int, minimize
 func converge(hn, hx []float64) float64 {
 
 	// sx := 0.
-	// for i := 0; i < len(hn); i++ {
+	// for i := range len(hn) {
 	// 	if hx[i]-hn[i] > sx { // looking for maximum range in sample space s
 	// 		sx = hx[i] - hn[i]
 	// 	}
@@ -250,13 +250,13 @@ func converge(hn, hx []float64) float64 {
 	// return sx // max dimension
 
 	// sx := 0.
-	// for i := 0; i < len(hn); i++ {
+	// for i := range len(hn) {
 	// 	sx += hx[i] - hn[i]
 	// }
 	// return sx / float64(len(hn)) // arithmetic mean
 
 	sx := 1.
-	for i := 0; i < len(hn); i++ {
+	for i := range len(hn) {
 		sx *= hx[i] - hn[i]
 	}
 	return math.Pow(sx, 1./float64(len(hn))) // geometric mean
@@ -265,12 +265,12 @@ func converge(hn, hx []float64) float64 {
 func smallestHypercube(u [][]float64, s, n int) ([]float64, []float64) {
 	// compute H, the smallest hypercube containing A^k in Duan etal (1993)
 	hn, hx := make([]float64, n), make([]float64, n)
-	for j := 0; j < n; j++ {
+	for j := range n {
 		hn[j] = 1.
 		hx[j] = 0.
 	}
 	for i := 0; i < s; i++ {
-		for j := 0; j < n; j++ {
+		for j := range n {
 			if u[i][j] < hn[j] {
 				hn[j] = u[i][j]
 			}
@@ -288,11 +288,11 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 	// step 2 select q parents using assigned weights; q is defined as a subcomplex
 	l := make([]int, q)      // L: the locations of 'a' which are used to construct B=[ui, vi]
 	vi := make([]float64, q) // function values associated with ui
-	for i := 0; i < q; i++ {
+	for i := range q {
 		bl := make([]bool, m)
 	redo2:
 		r1, r2 := rng.Float64(), 0.
-		for j := 0; j < m; j++ {
+		for j := range m {
 			r2 += w[j]
 			if r2 >= r1 && !bl[j] {
 				bl[j] = true
@@ -307,7 +307,7 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 
 	// step 3 generate offspring
 	hn, hx := smallestHypercube(c.u, m, n)
-	for x := 0; x < alpha; x++ {
+	for range alpha {
 		//  3a) sort L and B by function value
 		sort.Sort(mmaths.IndexedSlice{Indx: l, Val: vi})
 		if !minimize { // ordering from best (highest evaluated score) to worst
@@ -317,7 +317,7 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 
 		// determine subcomplex centroid g
 		g, r := make([]float64, n), make([]float64, n) // g() centroid, r() reflection step
-		for i := 0; i < n; i++ {
+		for i := range n {
 			sum := 0.0
 			for j := 0; j < q-1; j++ {
 				sum += c.u[l[j]][i]
@@ -326,19 +326,19 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 		}
 
 		// 3b) compute new point (reflection)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			r[i] = 2.*g[i] - c.u[l[q-1]][i]
 		}
 
 		// 3c)
-		for i := 0; i < n; i++ { // check if r() is in feasible space
+		for i := range n { // check if r() is in feasible space
 			if r[i] > 1. || r[i] < 0. {
 				goto _3cMutate
 			}
 		}
 		goto _3d
 	_3cMutate: // reflection went outside feasible space, mutate from smallest hypercube
-		for i := 0; i < n; i++ { // mutation
+		for i := range n { // mutation
 			r[i] = hn[i] + rng.Float64()*(hx[i]-hn[i]) // r() is used here in place of z() in Duan etal (1993)
 		}
 
@@ -349,7 +349,7 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 			copy(c.u[l[q-1]], r)
 			goto _3f
 		} else {
-			for i := 0; i < n; i++ { // contraction step
+			for i := range n { // contraction step
 				r[i] = (g[i] + c.u[l[q-1]][i]) / 2. // r() is used here in place of c() in Duan etal (1993)
 			}
 		}
@@ -360,7 +360,7 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 			vi[q-1] = fr
 			copy(c.u[l[q-1]], r)
 		} else {
-			for i := 0; i < n; i++ { // mutation step
+			for i := range n { // mutation step
 				r[i] = hn[i] + rng.Float64()*(hx[i]-hn[i]) // r() is used here in place of z() in Duan etal (1993)
 			}
 			vi[q-1] = fun(r) // fz
@@ -371,7 +371,7 @@ func (c *cmplx) sceuacce(w []float64, n, m, q int, minimize bool, fun func(p []f
 	}
 
 	// reset f
-	for i := 0; i < q; i++ {
+	for i := range q {
 		c.f[l[i]] = vi[i]
 	}
 }
